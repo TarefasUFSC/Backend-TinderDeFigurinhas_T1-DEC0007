@@ -19,12 +19,22 @@ function getFiles (dir, files_){
 mongoose.connect("mongodb+srv://gourmet:"+process.env.MONGODB_PSW+"@clusterdec0007.itfze4v.mongodb.net/DEC0007_T1?retryWrites=true&w=majority")
 const database = mongoose.connection;
 database.on('error',(e)=>{console.log(e);})
-database.once('connected',()=>{
+database.once('connected',async ()=>{
     console.log("Db conectado");
-    populateFigure();
+    
+
+    await database.db.dropCollection("figuras", function(err, result) {
+        if(err){console.log("Erro ao deletar figuras");}
+        console.log("Collection figuras droped");
+    });
+    await Figure.createCollection().then(function (collection) {
+        console.log('Collection figuras is created!');
+    });
+    await populateFigure();
+    process.exit()
 })
 async function  populateFigure(){
-    console.log("Populating Figure");
+    console.log("Populating figuras");
     // Walker options
     var files = getFiles('public/figurinhas_da_copa_2022');
     for (file in files){
