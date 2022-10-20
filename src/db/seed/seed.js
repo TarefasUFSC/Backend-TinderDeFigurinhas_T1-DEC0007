@@ -40,9 +40,11 @@ async function  populateFigure(){
     for (file in files){
         console.log("File: "+files[file]);
         //console.log(files[file]);
+        //console.log();
         try{
+            console.log(files[file].split("/")[2].split(".")[0]);
             const dt_fig = {
-                id_figure: file,
+                id_figure: parseInt(files[file].split("/")[2].split(".")[0]),
                 photo_url: files[file]
             }
             const fig = await Figure.create(dt_fig);
