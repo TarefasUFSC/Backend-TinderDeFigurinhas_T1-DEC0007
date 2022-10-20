@@ -5,6 +5,7 @@ const UserSchema = new mongoose.Schema({
     id_user:{
         type: Number,
         required: true,
+        unique: true
     },
     name:{
         type: String,
@@ -41,6 +42,7 @@ const UserSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
+        unique: true
     },
 
 });
