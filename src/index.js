@@ -4,11 +4,13 @@ const routes = require("./routes");
 const app = express();
 const WebSocket = require("ws");
 
+const path = require('path')
+
 const mongoose = require('mongoose');
 // get env variables
 require('dotenv').config();
 
-mongoose.connect("mongodb+srv://gourmet:"+process.env.MONGODB_PSW+"@clusterdec0007.itfze4v.mongodb.net/DEC0007_T1?retryWrites=true&w=majority", {useMongoClient: true })
+mongoose.connect("mongodb+srv://gourmet:"+process.env.MONGODB_PSW+"@clusterdec0007.itfze4v.mongodb.net/DEC0007_T1?retryWrites=true&w=majority", { useNewUrlParser: true })
 const database = mongoose.connection;
 database.on('error',(e)=>{console.log(e);})
 database.once('connected',()=>{console.log("Db conectado");})
@@ -36,5 +38,7 @@ wss.on("connection", function connection(ws) {
 app.use(cors());
 app.use(express.json());
 app.use(routes);
+
+app.use('/public', express.static(path.join(__dirname, '/public')))
 
 app.listen(3333, "0.0.0.0");

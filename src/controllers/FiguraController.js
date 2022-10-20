@@ -1,16 +1,56 @@
-
+const User = require('../db/models/user');
+const Figure = require('../db/models/figure');
 
 module.exports = {
     async getFigById(request, response) {
         const { id } = request.params;
+        const fig = await Figure.findOne({id_figure: id});
 
-        // Verifica se o id do parametro existe dentro do banco
-        // se existe retorna o id e o link da foto dele
+        if(!fig){
+            return response.status(400).json({error: "Figurinha não encontrada"});
+        }
 
         data = {
             id: id,
-            image: "https://paninistickeralbum.fifa.com/assets/images/stickers/transparent/180-271f9e3f51ebe47f5084aad2e98b4d09967bfa99e21a00ea4141ff7dedc024fb.png"
+            photo_url: "http://localhost:3333/"+fig.photo_url
         }
     return response.json(data);
+    },
+
+    async getFigurasByUserId(request, response) {
+        const { id_user } = request.body;
+        const user = await User.findOne({ id_user: id_user });
+
+        if(!user){
+            return response.status(400).json({ error: 'Usário não encontrado' });
+        }
+        unique_data = [];
+        repeated_data = [];
+        for ( i in user.unique_figs) {
+            const fig = await Figure.findOne({id_figure: user.unique_figs[i]});
+            unique_data.push({ id_figure: user.unique_figs[i], photo_url: "http://localhost:3333/"+fig.photo_url });
+        }
+        for ( i in user.repeated_figs) {
+            const fig = await Figure.findOne({id_figure: user.repeated_figs[i]});
+            repeated_data.push({ id_figure: user.repeated_figs[i], photo_url: "http://localhost:3333/"+fig.photo_url });
+        }
+
+        return response.status(200).json({unique_figs: unique_data, repeated_figs: repeated_data});
+    },
+
+    async getFiguras(request, response) {
+        const figs = await Figure.find({},"id_figure photo_url");
+        if(!figs){
+            return response.status(400).json({ error: 'Figurinhas não encontradas' });
+        }
+        data = [];
+        for(i in figs){
+            dt = {
+                id_figure: figs[i].id_figure,
+                photo_url: "http://localhost:3333/"+ figs[i].photo_url
+            };
+            data.push(dt);
+        }
+        return response.status(200).json({figure_list: data});
     }
 };
