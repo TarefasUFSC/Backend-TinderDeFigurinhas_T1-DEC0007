@@ -8,12 +8,12 @@ const UserController = require("./controllers/UserController");
 
 
 // Rotas de Usuário	
-routes.post('/signup', UserController.signup);
+routes.post('/user/signup', UserController.signup);
+routes.post("/user/figurinha", FiguraController.getFigurasByUserId);
 
 // Rotas de Figuras
 routes.get("/figurinha", FiguraController.getFiguras);
-routes.get("/figura/:id", FiguraController.getFigById);
-routes.post("/user/figurinha", FiguraController.getFigurasByUserId);
+routes.get("/figurinha/:id", FiguraController.getFigById);
 
 
 
