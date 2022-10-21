@@ -17,11 +17,19 @@ module.exports = {
         const salt_psw = saltedMd5(password, process.env.SALT);
         if(salt_psw == user.salt_psw){
             console.log(user);
-            return user;
+            const dt = {
+                id_user: user.id_user,
+                name: user.name,
+                photo: user.photo,
+                unique_figs: user.unique_figs,
+                repeated_figs: user.repeated_figs,
+            }
+            return dt;
         }
         return {error: "Wrong password"};
     },
     async signup(request, response) {
+        //console.log(request.body.name);
         const { name, email, password, contact_type, contact_value, photo, last_login_position } = request.body;
         //const saltedHash = saltedMd5('Some data.', 'SUPER-S@LT!');
         const salt_psw = saltedMd5(password, process.env.SALT);
@@ -31,7 +39,7 @@ module.exports = {
         // check if user already exists
         const user = await User.findOne({ email });
         if (user) {
-            return response.status(400).json({ error: 'User already exists' });
+            return response.status(401).json({ error: 'User already exists' });
         }
         const dt_user = {
             id_user: id_user,
