@@ -29,12 +29,12 @@ module.exports = {
         //console.log(user);
         for ( i in user.unique_figs) {
             const fig = await Figure.findOne({id_figure: user.unique_figs[i].id_figure});
-            console.log(fig);
+            //console.log(fig);
             unique_data.push({ id_figure: user.unique_figs[i].id_figure, photo_url: "http://localhost:3333/"+fig.photo_url });
         }
         for ( i in user.repeated_figs) {
-            console.log("b");
-            console.log(user.repeated_figs[i]);
+            //console.log("b");
+            //console.log(user.repeated_figs[i]);
             const fig = await Figure.findOne({id_figure: user.repeated_figs[i].id_figure});
             repeated_data.push({ id_figure: user.repeated_figs[i], photo_url: "http://localhost:3333/"+fig.photo_url, is_promissed: user.repeated_figs[i].is_promissed });
         }
