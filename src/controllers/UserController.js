@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const User = require('../db/models/user');
+const Figure = require('../db/models/figure');
 const saltedMd5 = require('salted-md5');
 
 module.exports = {
