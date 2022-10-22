@@ -31,10 +31,10 @@ wss.on("connection", function connection(ws) {
   console.log("New connection");
   ws.on("message", async function incoming(message) {
     var msg = JSON.parse(message);
-    console.log(msg);
+    //console.log(msg);
     switch (msg.type) {
       case "login":
-        console.log("Login");
+        //console.log("Login");
         const rsp = await UserController.login(msg.data);
         if(rsp.error){
           ws.send(JSON.stringify({type:"login",data:{error:rsp.error}}));

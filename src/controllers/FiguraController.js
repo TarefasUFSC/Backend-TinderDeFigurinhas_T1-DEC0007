@@ -22,17 +22,21 @@ module.exports = {
         const user = await User.findOne({ id_user: id_user });
 
         if(!user){
-            return response.status(400).json({ error: 'Usário não encontrado' });
+            return response.status(400).json({ error: 'Usuário não encontrado' });
         }
         unique_data = [];
         repeated_data = [];
+        //console.log(user);
         for ( i in user.unique_figs) {
-            const fig = await Figure.findOne({id_figure: user.unique_figs[i]});
-            unique_data.push({ id_figure: user.unique_figs[i], photo_url: "http://localhost:3333/"+fig.photo_url });
+            const fig = await Figure.findOne({id_figure: user.unique_figs[i].id_figure});
+            console.log(fig);
+            unique_data.push({ id_figure: user.unique_figs[i].id_figure, photo_url: "http://localhost:3333/"+fig.photo_url });
         }
         for ( i in user.repeated_figs) {
-            const fig = await Figure.findOne({id_figure: user.repeated_figs[i]});
-            repeated_data.push({ id_figure: user.repeated_figs[i], photo_url: "http://localhost:3333/"+fig.photo_url });
+            console.log("b");
+            console.log(user.repeated_figs[i]);
+            const fig = await Figure.findOne({id_figure: user.repeated_figs[i].id_figure});
+            repeated_data.push({ id_figure: user.repeated_figs[i], photo_url: "http://localhost:3333/"+fig.photo_url, is_promissed: user.repeated_figs[i].is_promissed });
         }
 
         return response.status(200).json({unique_figs: unique_data, repeated_figs: repeated_data});

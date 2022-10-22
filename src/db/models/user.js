@@ -22,14 +22,10 @@ const UserSchema = new mongoose.Schema({
         
 
     },
-    unique_figs: [{
-        type: Number,
-        required: true,
-    }],
-    repeated_figs: [{
-        type: Number,
-        required: true,
-    }],
+    unique_figs: [
+        {id_figure:{type: Number,required:true}}
+    ],
+    repeated_figs: [{id_figure:{type: Number,required:true}}],
     //wanted_figs -> vai ser o conjunto inverso do unique_figs
     contact_info: {
         contact_type: {type: String,required:true},

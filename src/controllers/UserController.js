@@ -6,7 +6,7 @@ const saltedMd5 = require('salted-md5');
 
 module.exports = {
     async login(data){
-        console.log(data);
+        //console.log(data);
         const {email, password} = data;
         const user = await User.findOne({email: email});
         
