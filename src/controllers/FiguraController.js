@@ -36,7 +36,7 @@ module.exports = {
             //console.log("b");
             //console.log(user.repeated_figs[i]);
             const fig = await Figure.findOne({id_figure: user.repeated_figs[i].id_figure});
-            repeated_data.push({ id_figure: user.repeated_figs[i], photo_url: "http://localhost:3333/"+fig.photo_url, is_promissed: user.repeated_figs[i].is_promissed });
+            repeated_data.push({ id_figure: user.repeated_figs[i].id_figure, photo_url: "http://localhost:3333/"+fig.photo_url, is_promissed: user.repeated_figs[i].is_promissed });
         }
 
         return response.status(200).json({unique_figs: unique_data, repeated_figs: repeated_data});
