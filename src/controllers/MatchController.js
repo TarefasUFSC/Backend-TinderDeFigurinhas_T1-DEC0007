@@ -54,7 +54,7 @@ module.exports = {
         }
         const matches = await Match.find({$or: [{id_user_1: id_user}, {id_user_2: id_user}]});
         if(matches.length == 0){
-            return response.status(404).json({ error: 'Nenhum match encontrado para o usuário: '+ user.name });
+            return response.status(200).json({ error: 'Nenhum match encontrado para o usuário: '+ user.name });
         }
         var data = []
         for(i in matches){

@@ -8,13 +8,19 @@ const saltedMd5 = require('salted-md5');
 module.exports = {
     async login(data){
         //console.log(data);
-        const {email, password} = data;
+        const {email, password, last_login_position} = data;
+
         const user = await User.findOne({email: email});
         
         if(!user){
             return {error: "User not found"};
         }
-        
+        // update last login position
+        const nuser = await User.findOneAndUpdate({email: email}, {last_login_position: {
+            lat: last_login_position.lat,
+            lng: last_login_position.lng,
+            timestamp: Math.floor(Date.now() / 1000)
+        }}, {new: true});
         const salt_psw = saltedMd5(password, process.env.SALT);
         if(salt_psw == user.salt_psw){
             console.log(user);
@@ -30,12 +36,12 @@ module.exports = {
         return {error: "Wrong password"};
     },
     async signup(request, response) {
-        //console.log(request.body.name);
+        console.log(request.body);
         const { name, email, password, contact_type, contact_value, photo, last_login_position } = request.body;
         //const saltedHash = saltedMd5('Some data.', 'SUPER-S@LT!');
         const salt_psw = saltedMd5(password, process.env.SALT);
         const id_user = await User.countDocuments();
-        const now_timestamp = Date.now();
+        const now_timestamp = Math.floor(Date.now() / 1000);
 
         // check if user already exists
         const user = await User.findOne({ email });
