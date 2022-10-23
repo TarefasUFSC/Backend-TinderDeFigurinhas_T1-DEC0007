@@ -11,6 +11,7 @@ const MatchController = require("./controllers/MatchController");
 // Rotas de Usuário	
 routes.post('/user/signup', UserController.signup);
 routes.post("/user/figurinha", FiguraController.getFigurasByUserId);
+routes.put("/user/figurinha/new", UserController.updateAlbumByUserId);
 routes.post("/user/match", MatchController.getMatchByUserId);
 
 

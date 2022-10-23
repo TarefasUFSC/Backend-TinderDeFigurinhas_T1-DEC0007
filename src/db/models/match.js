@@ -20,8 +20,8 @@ const MatchScheme = new mongoose.Schema({
         description: {type: String,required:false},
     },
     figures: {
-        user_1:[{id_figure:{type: Number,required:true}}],
-        user_2:[{id_figure:{type: Number,required:true}}]
+        user_1:[{id_figure:{type: Number,required:true},_id_figure:{type: String,required:true}}],
+        user_2:[{id_figure:{type: Number,required:true},_id_figure:{type: String,required:true}}],
     },
     timestamp_match: {type:Number,required:true},
 });

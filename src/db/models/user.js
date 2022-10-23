@@ -11,10 +11,6 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    photo:{
-        type: String,
-        required: true,
-    },
     last_login_position: {
         lat:{type: Number,required:true},
         lng:{type: Number,required:true},
