@@ -6,6 +6,22 @@ const Figure = require('../db/models/figure');
 const Match = require('../db/models/match');
 const saltedMd5 = require('salted-md5');
 
+async function verificaMatch(){
+    console.log("verificaMatch");
+}
+
+const userEventEmitter = User.watch()
+
+//usar isso aqui pra dar trigger nos matches
+userEventEmitter.on('change', change => { 
+    console.log("Mudança no USER identificada!!!\n"); 
+    //loop through all keys of the object
+    for (let key in change.updateDescription.updatedFields) {
+        if(key.split('.')[0] == "repeated_figs" || key.split('.')[0] == "last_login_position"){
+            verificaMatch()
+        }
+    }
+});
 
 async function checkIfFigureHasACopy(figureId, id_user) {
     const fig_in_user = await User.findOne(
