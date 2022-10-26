@@ -25,10 +25,10 @@ async function checkIfFigureHasACopy(figureId, id_user) {
 }
 async function setFiguresFreeFromPromisse(user, match_figures_user) {
     for (let i = 0; i < match_figures_user.length; i++) {
-        const fig = match_figures_user[i];
+        const fig_match = match_figures_user[i];
         // set the promissed to false to figure with id_figure == fig.id_figure
         user.repeated_figs = user.repeated_figs.map((fig) => {
-            if (fig.id_figure == fig.id_figure) {
+            if (fig._id == fig_match._id_figure) {
                 fig.is_promissed = false;
             }
             return fig;
