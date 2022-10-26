@@ -1,8 +1,162 @@
 const User = require('../db/models/user');
 const Figure = require('../db/models/figure');
 const Match = require('../db/models/match');
+const geolib = require('geolib');
+const { v4: uuidv4 } = require('uuid');
 
+
+async function verificaMatch(change){
+    console.log("verificaMatch");
+    const alteredUser = await User.findById({_id:change.documentKey._id});
+    console.log("alteredUser", alteredUser.name);
+    const borders = await geolib.getBoundsOfDistance(
+        { latitude: alteredUser.last_login_position.lat, longitude: alteredUser.last_login_position.lng },
+        process.env.MAX_MATCH_RADIUS_METERS
+    );
+    console.log("borders", borders);
+    //find users in the same area
+    const usersWithinRadius = await User.find({
+        last_login_position: {
+            $geoWithin: {
+                $box: [
+                    [borders[0].latitude, borders[0].longitude],
+                    [borders[1].latitude, borders[1].longitude],
+                ]
+            }
+        }
+    });
+    //console.log("usersWithinRadius", usersWithinRadius);
+    //find matches
+    
+    for (let i = 0; i < usersWithinRadius.length; i++) {
+        const not_prom_figs_altered_user = alteredUser.repeated_figs.filter((fig) => fig.is_promissed == false);
+        const user = usersWithinRadius[i];
+        //console.log("user", user);
+        if (user.id_user != alteredUser.id_user) {
+            //find figures that are promissed to the user
+            
+            const not_prom_figs_user = user.repeated_figs.filter((fig) => fig.is_promissed == false);
+            //console.log("not_prom_figs_altered_user", not_prom_figs_altered_user);
+            //console.log("not_prom_figs_user", not_prom_figs_user);
+            
+
+
+            // filter to have only one figure of each type
+            const not_prom_figs_altered_user_filtered = not_prom_figs_altered_user.filter((fig, index, self) =>
+                index === self.findIndex((t) => (
+                    t.id_figure === fig.id_figure
+                ))
+            );
+            const not_prom_figs_user_filtered = not_prom_figs_user.filter((fig, index, self) =>
+                index === self.findIndex((t) => (
+                    t.id_figure === fig.id_figure
+                ))
+            );
+
+            // find matching figures in the two users
+            let matching_figures_altered_user = [];
+            let matching_figures_user = [];
+            for (let j = 0; j < not_prom_figs_altered_user_filtered.length; j++) {
+                const fig_altered_user = not_prom_figs_altered_user_filtered[j];
+                for (let k = 0; k < not_prom_figs_user_filtered.length; k++) {
+                    const fig_user = not_prom_figs_user_filtered[k];
+                    if (fig_altered_user.id_figure == fig_user.id_figure) {
+                        matching_figures_altered_user.push(fig_altered_user);
+                        matching_figures_user.push(fig_user);
+                    }
+                }
+            }
+            
+            console.log("altered User", alteredUser.name, alteredUser.id_user);
+            console.log("User", user.name, user.id_user);
+            //console.log("ufigs", not_prom_figs_altered_user_filtered, not_prom_figs_user_filtered);
+            console.log("matching_figs", matching_figures_altered_user, matching_figures_user);
+            console.log("");
+
+            // create match if there are matching figures
+            if (matching_figures_altered_user.length > 0) {
+                // create match
+                const id_match = uuidv4();
+                const match = new Match({
+                    id_match:id_match,
+                    id_user_1: alteredUser.id_user,
+                    id_user_2: user.id_user,
+                    state: {
+                        progress: 0,
+                        description: "match created",
+                    },
+                    figures: {
+                        user_1: matching_figures_altered_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
+                        user_2: matching_figures_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
+                    },
+                    timestamp_match: Math.floor(Date.now() / 1000),
+                });
+                await match.save();
+                // set figures as promissed
+                alteredUser.repeated_figs = alteredUser.repeated_figs.map((fig) => {
+                    if (matching_figures_altered_user.find((fig2) => fig2._id == fig._id)) {
+                        fig.is_promissed = true;
+                    }
+                    return fig;
+                });
+                await alteredUser.save();
+                user.repeated_figs = user.repeated_figs.map((fig) => {
+                    if (matching_figures_user.find((fig2) => fig2._id == fig._id)) {
+                        fig.is_promissed = true;
+                    }
+                    return fig;
+                });
+            }
+            
+
+        }
+    }
+    console.log("verificaMatch end");
+}
+
+const userEventEmitter = User.watch()
+
+//usar isso aqui pra dar trigger nos matches
+userEventEmitter.on('change', change => { 
+    console.log("Mudança no USER identificada!!!\n"); 
+    //loop through all keys of the object
+    console.log(change);
+    if(change.operationType == "update"){
+    for (let key in change.updateDescription.updatedFields) {
+        if(key.split('.')[0] == "repeated_figs" || key.split('.')[0] == "last_login_position"){
+            verificaMatch(change)
+        }
+    }}
+});
+
+async function setFiguresFreeFromPromisse(user, match_figures_user) {
+    for (let i = 0; i < match_figures_user.length; i++) {
+        const fig_match = match_figures_user[i];
+        // set the promissed to false to figure with id_figure == fig.id_figure
+        user.repeated_figs = user.repeated_figs.map((fig) => {
+            if (fig._id == fig_match._id_figure) {
+                fig.is_promissed = false;
+            }
+            return fig;
+        });
+        await user.save();
+    }
+    return user;
+}
 module.exports = {
+    async deleteMatch(match_id) {
+        const match = await Match.findOne({ id_match: match_id });
+        // let all figures in the match know that the match was deleted setting the promissed to false
+        const id_user_1 = match.id_user_1;
+        const id_user_2 = match.id_user_2;
+        const user_1 = await User.findOne({ id_user: id_user_1 });
+        const user_2 = await User.findOne({ id_user: id_user_2 });
+        user_1 = await setFiguresFreeFromPromisse(user_1, match.figures.user_1);
+        user_2 = await setFiguresFreeFromPromisse(user_2, match.figures.user_2);
+        // delete the match entry in the database
+        await Match.deleteOne({ id_match: match_id });
+    
+    },
     async getMatchById(request, response) {
         const { id } = request.params;
         const match = await Match.findOne({id_match: id});

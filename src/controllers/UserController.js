@@ -5,23 +5,10 @@ const User = require('../db/models/user');
 const Figure = require('../db/models/figure');
 const Match = require('../db/models/match');
 const saltedMd5 = require('salted-md5');
+const deleteMatch = require('./MatchController').deleteMatch;
 
-async function verificaMatch(){
-    console.log("verificaMatch");
-}
+const { v4: uuidv4 } = require('uuid');
 
-const userEventEmitter = User.watch()
-
-//usar isso aqui pra dar trigger nos matches
-userEventEmitter.on('change', change => { 
-    console.log("Mudança no USER identificada!!!\n"); 
-    //loop through all keys of the object
-    for (let key in change.updateDescription.updatedFields) {
-        if(key.split('.')[0] == "repeated_figs" || key.split('.')[0] == "last_login_position"){
-            verificaMatch()
-        }
-    }
-});
 
 async function checkIfFigureHasACopy(figureId, id_user) {
     const fig_in_user = await User.findOne(
@@ -39,34 +26,8 @@ async function checkIfFigureHasACopy(figureId, id_user) {
     return false;
 
 }
-async function setFiguresFreeFromPromisse(user, match_figures_user) {
-    for (let i = 0; i < match_figures_user.length; i++) {
-        const fig_match = match_figures_user[i];
-        // set the promissed to false to figure with id_figure == fig.id_figure
-        user.repeated_figs = user.repeated_figs.map((fig) => {
-            if (fig._id == fig_match._id_figure) {
-                fig.is_promissed = false;
-            }
-            return fig;
-        });
-        await user.save();
-    }
-    return user;
-}
-async function deleteMatch(match_id) {
-    const match = await Match.findOne({ id_match: match_id });
-    // let all figures in the match know that the match was deleted setting the promissed to false
-    const id_user_1 = match.id_user_1;
-    const id_user_2 = match.id_user_2;
-    const user_1 = await User.findOne({ id_user: id_user_1 });
-    const user_2 = await User.findOne({ id_user: id_user_2 });
-    user_1 = await setFiguresFreeFromPromisse(user_1, match.figures.user_1);
-    user_2 = await setFiguresFreeFromPromisse(user_2, match.figures.user_2);
-    // delete the match entry in the database
-    await Match.deleteOne({ id_match: match_id });
 
 
-}
 async function deleteRepeatedFigure(id_figure, id_user) {
     //------------------
     // remotion of repeated figure
@@ -154,7 +115,7 @@ module.exports = {
         const { name, email, password, contact_type, contact_value, photo, last_login_position } = request.body;
         //const saltedHash = saltedMd5('Some data.', 'SUPER-S@LT!');
         const salt_psw = saltedMd5(password, process.env.SALT);
-        const id_user = await User.countDocuments();
+        const id_user = await uuidv4();
         const now_timestamp = Math.floor(Date.now() / 1000);
 
         // check if user already exists

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 //const PositionSchema = new mongoose.Schema();
 const UserSchema = new mongoose.Schema({
     id_user:{
-        type: Number,
+        type: String,
         required: true,
         unique: true
     },

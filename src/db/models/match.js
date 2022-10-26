@@ -3,16 +3,16 @@ const mongoose = require('mongoose');
 
 const MatchScheme = new mongoose.Schema({
     id_match:{
-        type: Number,
+        type: String,
         required: true,
         unique: true
     },
     id_user_1:{
-        type: Number,
+        type: String,
         required: true,
     },
     id_user_2:{
-        type: Number,
+        type: String,
         required: true,
     },
     state:{
