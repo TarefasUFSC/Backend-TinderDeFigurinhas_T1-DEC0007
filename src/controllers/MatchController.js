@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 
 
 async function verificaMatch(change) {
-    console.log("verificaMatch");
+    console.log("verificaMatch start");
     const alteredUser = await User.findById({ _id: change.documentKey._id });
     console.log("alteredUser", alteredUser.name, alteredUser.last_login_position);
     const borders = await geolib.getBoundsOfDistance(
@@ -25,21 +25,14 @@ async function verificaMatch(change) {
             }
         }
     });
-    //console.log("usersWithinRadius", usersWithinRadius);
-    //find matches
 
+    //find matches
     for (let i = 0; i < usersWithinRadius.length; i++) {
         const not_prom_figs_altered_user = alteredUser.repeated_figs.filter((fig) => fig.is_promissed == false);
         const user = usersWithinRadius[i];
-        //console.log("user", user);
         if (user.id_user != alteredUser.id_user) {
             //find figures that are promissed to the user
-
             const not_prom_figs_user = user.repeated_figs.filter((fig) => fig.is_promissed == false);
-            //console.log("not_prom_figs_altered_user", not_prom_figs_altered_user);
-            //console.log("not_prom_figs_user", not_prom_figs_user);
-
-
 
             // filter to have only one figure of each type
             const not_prom_figs_altered_user_filtered = not_prom_figs_altered_user.filter((fig, index, self) =>
@@ -87,52 +80,36 @@ async function verificaMatch(change) {
                 }
             }
 
-            // VERIFICAR SE A LOGICA DOS FORS ESTÁ CERTA E SE O MATCHING FIGURES ESTÁ CORRETO
+            // if there are matching figures, create a match
+            if (matching_figures_altered_user.length > 0 && matching_figures_user.length > 0) {
+                // create match
+                const id_match = uuidv4();
+                const match = new Match({
+                    id_match:id_match,
+                    id_user_1: alteredUser.id_user,
+                    id_user_2: user.id_user,
+                    state: {
+                        progress: 0,
+                        description: "match created",
+                    },
+                    figures: {
+                        user_1: matching_figures_altered_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
+                        user_2: matching_figures_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
+                    },
+                    timestamp_match: Math.floor(Date.now() / 1000),
+                    distance: geolib.getDistance(
+                        { latitude: alteredUser.last_login_position.lat, longitude: alteredUser.last_login_position.lng },
+                        { latitude: user.last_login_position.lat, longitude: user.last_login_position.lng }
+                    ),
+                });
+                await match.save();
 
-            console.log("altered User", alteredUser.name, alteredUser.id_user);
-            console.log("User", user.name, user.id_user);
-            console.log("matching_figures_altered_user", matching_figures_altered_user.map((fig) => fig.id_figure), user.unique_figs.map((fig) => fig.id_figure));
-            console.log("matching_figures_user", matching_figures_user.map((fig) => fig.id_figure), alteredUser.unique_figs.map((fig) => fig.id_figure));
-            console.log("");
-
-            
-            // create match if there are matching figures
-            // if (matching_figures_altered_user.length > 0) {
-            //     // create match
-            //     const id_match = uuidv4();
-            //     const match = new Match({
-            //         id_match:id_match,
-            //         id_user_1: alteredUser.id_user,
-            //         id_user_2: user.id_user,
-            //         state: {
-            //             progress: 0,
-            //             description: "match created",
-            //         },
-            //         figures: {
-            //             user_1: matching_figures_altered_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
-            //             user_2: matching_figures_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
-            //         },
-            //         timestamp_match: Math.floor(Date.now() / 1000),
-            //     });
-            //     await match.save();
-            //     // set figures as promissed
-            //     alteredUser.repeated_figs = alteredUser.repeated_figs.map((fig) => {
-            //         if (matching_figures_altered_user.find((fig2) => fig2._id == fig._id)) {
-            //             fig.is_promissed = true;
-            //         }
-            //         return fig;
-            //     });
-            //     await alteredUser.save();
-            //     // atualizar o user tbm
-            //     user.repeated_figs = user.repeated_figs.map((fig) => {
-            //         if (matching_figures_user.find((fig2) => fig2._id == fig._id)) {
-            //             fig.is_promissed = true;
-            //         }
-            //         return fig;
-            //     });
-            // }
-
-
+            console.log("Sugestão de match criada:");
+            console.log("User 1:", alteredUser.name, alteredUser.id_user);
+            console.log("Figures User 1:", matching_figures_altered_user.map((fig) => fig.id_figure));
+            console.log("User 2:", user.name, user.id_user);
+            console.log("Figures User 2:", matching_figures_user.map((fig) => fig.id_figure));
+            }
         }
     }
     console.log("verificaMatch end");
@@ -157,6 +134,21 @@ userEventEmitter.on('change', change => {
         verificaMatch(change);
     }
 });
+
+async function setFiguresAsPromissed(user, match_figures_user) {
+    for (let i = 0; i < match_figures_user.length; i++) {
+        const fig_match = match_figures_user[i];
+        // set the promissed to true to figure with id_figure == fig.id_figure
+        user.repeated_figs = user.repeated_figs.map((fig) => {
+            if (fig._id == fig_match._id_figure) {
+                fig.is_promissed = true;
+            }
+            return fig;
+        });
+        await user.save();
+    }
+    return user;
+}
 
 async function setFiguresFreeFromPromisse(user, match_figures_user) {
     for (let i = 0; i < match_figures_user.length; i++) {

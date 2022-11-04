@@ -24,6 +24,7 @@ const MatchScheme = new mongoose.Schema({
         user_2:[{id_figure:{type: Number,required:true},_id_figure:{type: String,required:true}}],
     },
     timestamp_match: {type:Number,required:true},
+    distance: {type:Number,required:true},
 });
 const Match = mongoose.model('matches', MatchScheme);
 module.exports = Match;
