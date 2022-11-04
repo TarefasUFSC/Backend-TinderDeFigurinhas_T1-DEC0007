@@ -173,7 +173,8 @@ module.exports = {
 
 
 
-
+        // ADICIONAR FIGURAS ESTÁ BUGADO E PRECISA ARRUMAR
+        // ADICIONA DUAS FIGURINHAS IGUAS COMO UNICAS
         if (new_figures) {
             // add new figures
             console.log("adding new figs");
@@ -193,29 +194,19 @@ module.exports = {
                     });
                 if (fig_in_user) {
                     // figure already in user
-                    const user = await User.findOneAndUpdate(
-                        { id_user: id_user },
-                        {
-                            $push: {
-                                repeated_figs: {
-                                    id_figure: new_figures[i],
-                                    is_promissed: false
-                                }
-                            }
-                        });
+                    user.repeated_figs.push({
+                        id_figure: new_figures[i],
+                        is_promissed: false
+                    });
+                    
                 } else {
-                    const user = await User.findOneAndUpdate(
-                        { id_user: id_user },
-                        {
-                            $push: {
-                                unique_figs: {
-                                    id_figure: new_figures[i]
-                                }
-                            }
-                        });
+                    user.unique_figs.push({
+                        id_figure: new_figures[i]
+                    });
+                    
                 }
             }
-
+            user.save();
 
             return response.status(200).json({ message: "Figures added to user" });
 
@@ -267,15 +258,10 @@ module.exports = {
 
                 } else {
                     // there is no copy of this figure in repeated_figs than shall be deleted from unique
-                    const user = await User.findOneAndUpdate(
-                        { id_user: id_user },
-                        {
-                            $pull: {
-                                unique_figs: {
-                                    id_figure: rem_unique[i]
-                                }
-                            }
-                        });
+                    user.unique_figs = user.unique_figs.filter(function (obj) {
+                        return obj.id_figure != rem_unique[i];
+                    });
+                    
                 }
 
             }
