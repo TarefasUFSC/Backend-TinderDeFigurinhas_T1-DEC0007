@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 
 
 async function verificaMatch(change) {
-    console.log("verificaMatch");
+    console.log("verificaMatch start");
     const alteredUser = await User.findById({ _id: change.documentKey._id });
     console.log("alteredUser", alteredUser.name, alteredUser.last_login_position);
     const borders = await geolib.getBoundsOfDistance(
@@ -25,21 +25,22 @@ async function verificaMatch(change) {
             }
         }
     });
-    //console.log("usersWithinRadius", usersWithinRadius);
-    //find matches
 
+    // delete old matches from alteredUser
+    const old_matches = await Match.find({ $or: [{ id_user_1: alteredUser.id_user }, { id_user_2: alteredUser.id_user }] });
+    for (let i = 0; i < old_matches.length; i++) {
+        if ((!old_matches[i].state.state_accepted.user_1 || !old_matches[i].state.state_accepted.user_2) && old_matches[i].state.progress == 0) {
+            deleteMatch(old_matches[i].id_match);
+        }
+    }
+
+    //find matches
     for (let i = 0; i < usersWithinRadius.length; i++) {
         const not_prom_figs_altered_user = alteredUser.repeated_figs.filter((fig) => fig.is_promissed == false);
         const user = usersWithinRadius[i];
-        //console.log("user", user);
         if (user.id_user != alteredUser.id_user) {
             //find figures that are promissed to the user
-
             const not_prom_figs_user = user.repeated_figs.filter((fig) => fig.is_promissed == false);
-            //console.log("not_prom_figs_altered_user", not_prom_figs_altered_user);
-            //console.log("not_prom_figs_user", not_prom_figs_user);
-
-
 
             // filter to have only one figure of each type
             const not_prom_figs_altered_user_filtered = not_prom_figs_altered_user.filter((fig, index, self) =>
@@ -87,52 +88,46 @@ async function verificaMatch(change) {
                 }
             }
 
-            // VERIFICAR SE A LOGICA DOS FORS ESTÁ CERTA E SE O MATCHING FIGURES ESTÁ CORRETO
+            // if there are matching figures, create a match
+            if (matching_figures_altered_user.length > 0 && matching_figures_user.length > 0) {
+                // create match
+                const id_match = uuidv4();
+                const match = new Match({
+                    id_match:id_match,
+                    id_user_1: alteredUser.id_user,
+                    id_user_2: user.id_user,
+                    state: {
+                        progress: 0,
+                        description: "match created",
+                        state_accepted:{
+                            user_1: false,
+                            user_2: false
+                        },
+                        state_notified:{
+                            user_1: true,
+                            user_2: true
+                        }
+                    },
+                    figures: {
+                        user_1: matching_figures_altered_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
+                        user_2: matching_figures_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
+                    },
+                    timestamp_match: Math.floor(Date.now() / 1000),
+                    distance: geolib.getDistance(
+                        { latitude: alteredUser.last_login_position.lat, longitude: alteredUser.last_login_position.lng },
+                        { latitude: user.last_login_position.lat, longitude: user.last_login_position.lng }
+                    ),
+                });
+                await match.save();
 
-            console.log("altered User", alteredUser.name, alteredUser.id_user);
-            console.log("User", user.name, user.id_user);
-            console.log("matching_figures_altered_user", matching_figures_altered_user.map((fig) => fig.id_figure), user.unique_figs.map((fig) => fig.id_figure));
-            console.log("matching_figures_user", matching_figures_user.map((fig) => fig.id_figure), alteredUser.unique_figs.map((fig) => fig.id_figure));
-            console.log("");
+                console.log("Sugestão de match criada:");
+                console.log("User 1:", alteredUser.name, alteredUser.id_user);
+                console.log("Figures User 1:", matching_figures_altered_user.map((fig) => fig.id_figure));
+                console.log("User 2:", user.name, user.id_user);
+                console.log("Figures User 2:", matching_figures_user.map((fig) => fig.id_figure));
 
-            
-            // create match if there are matching figures
-            // if (matching_figures_altered_user.length > 0) {
-            //     // create match
-            //     const id_match = uuidv4();
-            //     const match = new Match({
-            //         id_match:id_match,
-            //         id_user_1: alteredUser.id_user,
-            //         id_user_2: user.id_user,
-            //         state: {
-            //             progress: 0,
-            //             description: "match created",
-            //         },
-            //         figures: {
-            //             user_1: matching_figures_altered_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
-            //             user_2: matching_figures_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
-            //         },
-            //         timestamp_match: Math.floor(Date.now() / 1000),
-            //     });
-            //     await match.save();
-            //     // set figures as promissed
-            //     alteredUser.repeated_figs = alteredUser.repeated_figs.map((fig) => {
-            //         if (matching_figures_altered_user.find((fig2) => fig2._id == fig._id)) {
-            //             fig.is_promissed = true;
-            //         }
-            //         return fig;
-            //     });
-            //     await alteredUser.save();
-            //     // atualizar o user tbm
-            //     user.repeated_figs = user.repeated_figs.map((fig) => {
-            //         if (matching_figures_user.find((fig2) => fig2._id == fig._id)) {
-            //             fig.is_promissed = true;
-            //         }
-            //         return fig;
-            //     });
-            // }
-
-
+                
+            }
         }
     }
     console.log("verificaMatch end");
@@ -158,6 +153,21 @@ userEventEmitter.on('change', change => {
     }
 });
 
+async function setFiguresAsPromissed(user, match_figures_user) {
+    for (let i = 0; i < match_figures_user.length; i++) {
+        const fig_match = match_figures_user[i];
+        // set the promissed to true to figure with id_figure == fig.id_figure
+        user.repeated_figs = user.repeated_figs.map((fig) => {
+            if (fig._id == fig_match._id_figure) {
+                fig.is_promissed = true;
+            }
+            return fig;
+        });
+        await user.save();
+    }
+    return user;
+}
+
 async function setFiguresFreeFromPromisse(user, match_figures_user) {
     for (let i = 0; i < match_figures_user.length; i++) {
         const fig_match = match_figures_user[i];
@@ -172,20 +182,61 @@ async function setFiguresFreeFromPromisse(user, match_figures_user) {
     }
     return user;
 }
-module.exports = {
-    async deleteMatch(match_id) {
-        const match = await Match.findOne({ id_match: match_id });
-        // let all figures in the match know that the match was deleted setting the promissed to false
-        const id_user_1 = match.id_user_1;
-        const id_user_2 = match.id_user_2;
-        const user_1 = await User.findOne({ id_user: id_user_1 });
-        const user_2 = await User.findOne({ id_user: id_user_2 });
-        user_1 = await setFiguresFreeFromPromisse(user_1, match.figures.user_1);
-        user_2 = await setFiguresFreeFromPromisse(user_2, match.figures.user_2);
-        // delete the match entry in the database
-        await Match.deleteOne({ id_match: match_id });
+async function deleteMatch(id_match) {
+    const match = await Match.findOne({ id_match: id_match });
+    // let all figures in the match know that the match was deleted setting the promissed to false
+    const id_user_1 = match.id_user_1;
+    const id_user_2 = match.id_user_2;
+    let user_1 = await User.findOne({ id_user: id_user_1 });
+    let user_2 = await User.findOne({ id_user: id_user_2 });
+    user_1 = await setFiguresFreeFromPromisse(user_1, match.figures.user_1);
+    user_2 = await setFiguresFreeFromPromisse(user_2, match.figures.user_2);
+    // delete the match entry in the database
+    await Match.deleteOne({ id_match: id_match });
 
+}
+module.exports = {
+    async acceptMatch(data){
+        const {user_id,id_match,figures_accepted} = data;
+        // select no match no banco
+        // identifica se o user que enviou o websocket é o user_1 ou 2
+        // coloca o accepted dele como true
+        const match = await Match.findOne({id_match: id_match});
+        if(match){
+            if(match.id_user_1 == user_id){
+                //user 1 is accepting
+                match.state.state_accepted.user_1 = true;
+            }else if(match.id_user_2 == user_id){
+                //user 2 is accepting
+                match.state.state_accepted.user_2 = true;
+            }
+            await match.save();
+            
+            // verifica se o accepted de ambos é true
+            // se for true, avanca o state e envia um websocket para os 2 falando que o match progrediu
+            // nota que um dos users pode estar deslogado, entao vc tem que salvar isso em algum lugar pra enviar um websocket quando ele logar.
+            if(match.state.state_accepted.user_1 && match.state.state_accepted.user_2){
+                //match is accepted
+                match.state.progress = 1;
+                match.state.description = "match accepted";
+                await match.save();
+                //set figures as promissed
+                const user_1 = await User.findOne({id_user: match.id_user_1});
+                const user_2 = await User.findOne({id_user: match.id_user_2});
+                if(user_1 && user_2){
+                    user_1 = await setFiguresAsPromissed(user_1,match.figures.user_1);
+                    user_2 = await setFiguresAsPromissed(user_2,match.figures.user_2);
+                    await user_1.save();
+                    await user_2.save();
+                }
+                
+            }
+            return {success: true, message: "match accepted"};
+        }else{
+            return {success: false, message: "match not found"};
+        }
     },
+    deleteMatch,
     async getMatchById(request, response) {
         const { id } = request.params;
         const match = await Match.findOne({ id_match: id });
