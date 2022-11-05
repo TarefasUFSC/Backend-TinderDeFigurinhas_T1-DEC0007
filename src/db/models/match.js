@@ -18,6 +18,14 @@ const MatchScheme = new mongoose.Schema({
     state:{
         progress: {type: Number,required:true},
         description: {type: String,required:false},
+        state_accepted:{
+            user_1: {type: Boolean,required:true},
+            user_2: {type: Boolean,required:true},
+        },
+        state_notified:{
+            user_1: {type: Boolean,required:true},
+            user_2: {type: Boolean,required:true},
+        },
     },
     figures: {
         user_1:[{id_figure:{type: Number,required:true},_id_figure:{type: String,required:true}}],

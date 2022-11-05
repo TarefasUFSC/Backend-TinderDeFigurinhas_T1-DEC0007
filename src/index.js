@@ -8,6 +8,7 @@ const path = require('path')
 
 const mongoose = require('mongoose');
 const UserController = require("./controllers/UserController");
+const MatchController = require("./controllers/MatchController");
 // get env variables
 require('dotenv').config();
 
@@ -41,6 +42,12 @@ wss.on("connection", function connection(ws) {
         }else{
           ws.send(JSON.stringify({type:"login",data:{user:rsp}}));
         }
+        break;
+      case "aceita_match":
+        // aqui vai ser chamado quando um user clicar em confirmar um match
+        // vai receber na msg as figurinhas que ele esta confirmando, as quais ficarão prometidas.
+        // isso acontece pois na sugestão existe a possibilidade de um ter mais cartas que o outro.
+        const aceppt_match_result = await MatchController.acceptMatch(msg.data);
         break;
     }
   });
