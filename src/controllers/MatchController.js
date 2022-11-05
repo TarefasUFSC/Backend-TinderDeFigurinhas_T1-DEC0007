@@ -93,24 +93,24 @@ async function verificaMatch(change) {
                 // create match
                 const id_match = uuidv4();
                 const match = new Match({
-                    id_match:id_match,
+                    id_match: id_match,
                     id_user_1: alteredUser.id_user,
                     id_user_2: user.id_user,
                     state: {
                         progress: 0,
                         description: "match created",
-                        state_accepted:{
+                        state_accepted: {
                             user_1: false,
                             user_2: false
                         },
-                        state_notified:{
+                        state_notified: {
                             user_1: true,
                             user_2: true
                         }
                     },
                     figures: {
-                        user_1: matching_figures_altered_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
-                        user_2: matching_figures_user.map((fig) => {return {id_figure: fig.id_figure, _id_figure: fig._id}}),
+                        user_1: matching_figures_altered_user.map((fig) => { return { id_figure: fig.id_figure, _id_figure: fig._id } }),
+                        user_2: matching_figures_user.map((fig) => { return { id_figure: fig.id_figure, _id_figure: fig._id } }),
                     },
                     timestamp_match: Math.floor(Date.now() / 1000),
                     distance: geolib.getDistance(
@@ -126,7 +126,7 @@ async function verificaMatch(change) {
                 console.log("User 2:", user.name, user.id_user);
                 console.log("Figures User 2:", matching_figures_user.map((fig) => fig.id_figure));
 
-                
+
             }
         }
     }
@@ -196,44 +196,49 @@ async function deleteMatch(id_match) {
 
 }
 module.exports = {
-    async acceptMatch(data){
-        const {user_id,id_match,figures_accepted} = data;
+    async acceptMatch(request, response) {
+        console.log("acceptMatch start");
+        const { id_user, id_match, figures_accepted } = request.body;
         // select no match no banco
         // identifica se o user que enviou o websocket é o user_1 ou 2
         // coloca o accepted dele como true
-        const match = await Match.findOne({id_match: id_match});
-        if(match){
-            if(match.id_user_1 == user_id){
+        const match = await Match.findOne({ id_match: id_match });
+        if (match) {
+            if (match.id_user_1 == id_user) {
                 //user 1 is accepting
                 match.state.state_accepted.user_1 = true;
-            }else if(match.id_user_2 == user_id){
+            } else if (match.id_user_2 == id_user) {
                 //user 2 is accepting
                 match.state.state_accepted.user_2 = true;
             }
             await match.save();
-            
+
             // verifica se o accepted de ambos é true
             // se for true, avanca o state e envia um websocket para os 2 falando que o match progrediu
             // nota que um dos users pode estar deslogado, entao vc tem que salvar isso em algum lugar pra enviar um websocket quando ele logar.
-            if(match.state.state_accepted.user_1 && match.state.state_accepted.user_2){
+            if (match.state.state_accepted.user_1 && match.state.state_accepted.user_2) {
                 //match is accepted
                 match.state.progress = 1;
+                match.state.state_notified.user_1 = false;
+                match.state.state_notified.user_2 = false;
+                match.state.state_accepted.user_1 = false;
+                match.state.state_accepted.user_2 = false;
                 match.state.description = "match accepted";
                 await match.save();
                 //set figures as promissed
-                const user_1 = await User.findOne({id_user: match.id_user_1});
-                const user_2 = await User.findOne({id_user: match.id_user_2});
-                if(user_1 && user_2){
-                    user_1 = await setFiguresAsPromissed(user_1,match.figures.user_1);
-                    user_2 = await setFiguresAsPromissed(user_2,match.figures.user_2);
+                user_1 = await User.findOne({ id_user: match.id_user_1 });
+                user_2 = await User.findOne({ id_user: match.id_user_2 });
+                if (user_1 && user_2) {
+                    user_1 = await setFiguresAsPromissed(user_1, match.figures.user_1);
+                    user_2 = await setFiguresAsPromissed(user_2, match.figures.user_2);
                     await user_1.save();
                     await user_2.save();
                 }
-                
+
             }
-            return {success: true, message: "match accepted"};
-        }else{
-            return {success: false, message: "match not found"};
+            return response.status(200).json({ message: "match accepted" });
+        } else {
+            return response.status(404).json({ error: 'Match não encontrado' });
         }
     },
     deleteMatch,

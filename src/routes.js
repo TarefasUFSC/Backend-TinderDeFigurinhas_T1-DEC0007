@@ -21,6 +21,7 @@ routes.get("/figurinha/:id", FiguraController.getFigById);
 
 // Rotas de Match
 routes.get("/match/:id", MatchController.getMatchById);
+routes.post("/match/accept", MatchController.acceptMatch);
 
 
 module.exports = routes;
