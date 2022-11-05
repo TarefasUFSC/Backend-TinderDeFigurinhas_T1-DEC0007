@@ -195,6 +195,17 @@ async function deleteMatch(id_match) {
     await Match.deleteOne({ id_match: id_match });
 
 }
+const match_stages = [
+    {description: "match created", progress: 0},
+    {description: "match accepted", progress: 1},
+    {description: "match completed", progress: 2},
+]
+async function preceedMatch(match){
+
+    match.state.progress = match.state.progress + 1;
+    match.state.description = match_stages[match.state.progress].description;
+    return match;
+}
 module.exports = {
     async acceptMatch(request, response) {
         console.log("acceptMatch start");
@@ -202,7 +213,7 @@ module.exports = {
         // select no match no banco
         // identifica se o user que enviou o websocket é o user_1 ou 2
         // coloca o accepted dele como true
-        const match = await Match.findOne({ id_match: id_match });
+        let match = await Match.findOne({ id_match: id_match });
         if (match) {
             if (match.id_user_1 == id_user) {
                 //user 1 is accepting
@@ -218,22 +229,26 @@ module.exports = {
             // nota que um dos users pode estar deslogado, entao vc tem que salvar isso em algum lugar pra enviar um websocket quando ele logar.
             if (match.state.state_accepted.user_1 && match.state.state_accepted.user_2) {
                 //match is accepted
-                match.state.progress = 1;
+                match = await preceedMatch(match);
                 match.state.state_notified.user_1 = false;
                 match.state.state_notified.user_2 = false;
                 match.state.state_accepted.user_1 = false;
                 match.state.state_accepted.user_2 = false;
-                match.state.description = "match accepted";
                 await match.save();
-                //set figures as promissed
-                user_1 = await User.findOne({ id_user: match.id_user_1 });
-                user_2 = await User.findOne({ id_user: match.id_user_2 });
-                if (user_1 && user_2) {
-                    user_1 = await setFiguresAsPromissed(user_1, match.figures.user_1);
-                    user_2 = await setFiguresAsPromissed(user_2, match.figures.user_2);
-                    await user_1.save();
-                    await user_2.save();
+                if(match.state.progress == 1){
+                    //set figures as promissed
+                    user_1 = await User.findOne({ id_user: match.id_user_1 });
+                    user_2 = await User.findOne({ id_user: match.id_user_2 });
+                    if (user_1 && user_2) {
+                        user_1 = await setFiguresAsPromissed(user_1, match.figures.user_1);
+                        user_2 = await setFiguresAsPromissed(user_2, match.figures.user_2);
+                        await user_1.save();
+                        await user_2.save();
+                    }
+                }else if(match.state.progress == 2){
+                    // faz a troca das figurinhas e tira as promessas delas
                 }
+                
 
             }
             return response.status(200).json({ message: "match accepted" });
