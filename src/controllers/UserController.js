@@ -178,35 +178,58 @@ module.exports = {
         if (new_figures) {
             // add new figures
             console.log("adding new figs");
+            const user = await User.findOne({ id_user: id_user });
             for (let i = 0; i < new_figures.length; i++) {
+
                 const fig = await Figure.findOne({ id_figure: new_figures[i] });
                 if (!fig) {
                     return response.status(401).json({ error: "Figure not found" });
                 }
-                const fig_in_user = await User.findOne(
-                    {
-                        id_user: id_user,
-                        unique_figs: {
-                            $elemMatch: {
-                                id_figure: new_figures[i]
-                            }
-                        }
-                    });
-                if (fig_in_user) {
-                    // figure already in user
-                    user.repeated_figs.push({
+
+                // check if the figure is already in the user's album
+                const fig_in_album = user.unique_figs.filter((fig) => fig.id_figure == new_figures[i]);
+                if (fig_in_album.length > 0) {
+                    // if it is, add it to repeated_figs
+                    const repeated_fig = {
                         id_figure: new_figures[i],
                         is_promissed: false
-                    });
-                    
-                } else {
-                    user.unique_figs.push({
-                        id_figure: new_figures[i]
-                    });
-                    
+                    }
+                    user.repeated_figs.push(repeated_fig);
                 }
+                else {
+                    // if not, add it to unique_figs
+                    const unique_fig = {
+                        id_figure: new_figures[i],
+                        is_promissed: false
+                    }
+                    user.unique_figs.push(unique_fig);
+                }
+
+
+                // const fig_in_user = await User.findOne(
+                //     {
+                //         id_user: id_user,
+                //         unique_figs: {
+                //             $elemMatch: {
+                //                 id_figure: new_figures[i]
+                //             }
+                //         }
+                //     });
+                // if (fig_in_user) {
+                //     // figure already in user
+                //     user.repeated_figs.push({
+                //         id_figure: new_figures[i],
+                //         is_promissed: false
+                //     });
+                    
+                // } else {
+                //     user.unique_figs.push({
+                //         id_figure: new_figures[i]
+                //     });
+                    
+                // }
             }
-            user.save();
+            await user.save();
 
             return response.status(200).json({ message: "Figures added to user" });
 
@@ -261,6 +284,7 @@ module.exports = {
                     user.unique_figs = user.unique_figs.filter(function (obj) {
                         return obj.id_figure != rem_unique[i];
                     });
+                    await user.save()
                     
                 }
 
