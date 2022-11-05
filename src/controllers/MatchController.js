@@ -218,9 +218,17 @@ module.exports = {
             if (match.id_user_1 == id_user) {
                 //user 1 is accepting
                 match.state.state_accepted.user_1 = true;
+                if(match.state.progress == 0){
+                    let figures_user_1 = match.figures.user_1.filter((fig) => figures_accepted.includes(fig.id_figure));
+                    match.figures.user_1 = figures_user_1;
+                }
             } else if (match.id_user_2 == id_user) {
                 //user 2 is accepting
                 match.state.state_accepted.user_2 = true;
+                if(match.state.progress == 0){
+                    let figures_user_2 = match.figures.user_1.filter((fig) => figures_accepted.includes(fig.id_figure));
+                    match.figures.user_2 = figures_user_2;
+                }
             }
             await match.save();
 
