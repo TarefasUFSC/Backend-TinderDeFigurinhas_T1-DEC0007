@@ -182,6 +182,19 @@ async function setFiguresFreeFromPromisse(user, match_figures_user) {
     }
     return user;
 }
+async function deleteMatch(id_match) {
+    const match = await Match.findOne({ id_match: id_match });
+    // let all figures in the match know that the match was deleted setting the promissed to false
+    const id_user_1 = match.id_user_1;
+    const id_user_2 = match.id_user_2;
+    let user_1 = await User.findOne({ id_user: id_user_1 });
+    let user_2 = await User.findOne({ id_user: id_user_2 });
+    user_1 = await setFiguresFreeFromPromisse(user_1, match.figures.user_1);
+    user_2 = await setFiguresFreeFromPromisse(user_2, match.figures.user_2);
+    // delete the match entry in the database
+    await Match.deleteOne({ id_match: id_match });
+
+}
 module.exports = {
     async acceptMatch(data){
         const {user_id,id_match,figures_accepted} = data;
@@ -223,19 +236,7 @@ module.exports = {
             return {success: false, message: "match not found"};
         }
     },
-    async deleteMatch(id_match) {
-        const match = await Match.findOne({ id_match: id_match });
-        // let all figures in the match know that the match was deleted setting the promissed to false
-        const id_user_1 = match.id_user_1;
-        const id_user_2 = match.id_user_2;
-        const user_1 = await User.findOne({ id_user: id_user_1 });
-        const user_2 = await User.findOne({ id_user: id_user_2 });
-        user_1 = await setFiguresFreeFromPromisse(user_1, match.figures.user_1);
-        user_2 = await setFiguresFreeFromPromisse(user_2, match.figures.user_2);
-        // delete the match entry in the database
-        await Match.deleteOne({ id_match: id_match });
-
-    },
+    deleteMatch,
     async getMatchById(request, response) {
         const { id } = request.params;
         const match = await Match.findOne({ id_match: id });
