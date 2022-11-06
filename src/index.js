@@ -31,11 +31,16 @@ const wss = new WebSocket.Server(
 );
 
 wss.on("connection", function connection(ws) {
+  //console.log(wss.clients);
   console.log("New connection");
   ws.on("message", async function incoming(message) {
     var msg = JSON.parse(message);
     //console.log(msg);
     switch (msg.type) {
+      case "loggedConnection":
+        console.log("loggedConnection");
+        WebSocketLoginController.loggedConnection(ws, msg.data);
+      break;
       case "login":
         //console.log("Login");
         await WebSocketLoginController.login(ws, msg.data);
@@ -49,6 +54,8 @@ wss.on("connection", function connection(ws) {
 
   ws.send(JSON.stringify({msg:"Roi, client-kun"}));
 });
+
+
 
 app.use(cors());
 app.use(express.json());

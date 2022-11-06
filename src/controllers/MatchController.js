@@ -6,14 +6,14 @@ const { v4: uuidv4 } = require('uuid');
 
 
 async function verificaMatch(change) {
-    console.log("verificaMatch start");
+   //console.log("verificaMatch start");
     const alteredUser = await User.findById({ _id: change.documentKey._id });
-    console.log("alteredUser", alteredUser.name, alteredUser.last_login_position);
+   //console.log("alteredUser", alteredUser.name, alteredUser.last_login_position);
     const borders = await geolib.getBoundsOfDistance(
         { latitude: alteredUser.last_login_position.lat, longitude: alteredUser.last_login_position.lng },
         process.env.MAX_MATCH_RADIUS_METERS
     );
-    console.log("borders", borders);
+   //console.log("borders", borders);
     //find users in the same area
     const usersWithinRadius = await User.find({
         last_login_position: {
@@ -120,26 +120,26 @@ async function verificaMatch(change) {
                 });
                 await match.save();
 
-                console.log("Sugestão de match criada:");
-                console.log("User 1:", alteredUser.name, alteredUser.id_user);
-                console.log("Figures User 1:", matching_figures_altered_user.map((fig) => fig.id_figure));
-                console.log("User 2:", user.name, user.id_user);
-                console.log("Figures User 2:", matching_figures_user.map((fig) => fig.id_figure));
+               //console.log("Sugestão de match criada:");
+               //console.log("User 1:", alteredUser.name, alteredUser.id_user);
+               //console.log("Figures User 1:", matching_figures_altered_user.map((fig) => fig.id_figure));
+               //console.log("User 2:", user.name, user.id_user);
+               //console.log("Figures User 2:", matching_figures_user.map((fig) => fig.id_figure));
 
 
             }
         }
     }
-    console.log("verificaMatch end");
+   //console.log("verificaMatch end");
 }
 
 const userEventEmitter = User.watch()
 
 //usar isso aqui pra dar trigger nos matches
 userEventEmitter.on('change', change => {
-    console.log("Mudança no USER identificada!!!\n");
+   //console.log("Mudança no USER identificada!!!\n");
     //loop through all keys of the object
-    console.log(change);
+   //console.log(change);
     let shouldCall = false;
     if (change.operationType == "update") {
         for (let key in change.updateDescription.updatedFields) {
@@ -208,7 +208,7 @@ async function preceedMatch(match){
 }
 module.exports = {
     async acceptMatch(request, response) {
-        console.log("acceptMatch start");
+       //console.log("acceptMatch start");
         const { id_user, id_match, figures_accepted } = request.body;
         // select no match no banco
         // identifica se o user que enviou o websocket é o user_1 ou 2
