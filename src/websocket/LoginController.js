@@ -37,20 +37,21 @@ module.exports = {
             ws.send(JSON.stringify({ type: "login", data: { user: rsp } }));
         }
         //check if user is already in connections
-        let found = false;
-        for (let i = 0; i < connections.length; i++) {
-            if (connections[i].user.id_user == user.id_user) {
-                found = true;
-                break;
+        connections = connections.filter(connection => {
+            if (connection.user.id_user == rsp.id_user) {
+                connection.ws.terminate();
+                return false;
             }
-        }
-        if (!found) {
-            connections.push({ ws: ws, user: user });
-        }
+            return true;
+        });
+        connections.push({ ws: ws, user: rsp });
+        
 
     },
     async loggedConnection(ws, data) {
         const user = await User.findOne({ id_user: data.id_user });
+        if(user){
+            
         const dt = {
             id_user: user.id_user,
             name: user.name,
@@ -59,15 +60,17 @@ module.exports = {
             repeated_figs: user.repeated_figs,
         }
         //check if user is already in connections
-        let found = false;
-        for (let i = 0; i < connections.length; i++) {
-            if (connections[i].user.id_user == user.id_user) {
-                found = true;
-                break;
+        connections = connections.filter(connection => {
+            if (connection.user.id_user == user.id_user) {
+                connection.ws.terminate();
+                return false;
             }
+            return true;
+        });
+        connections.push({ ws: ws, user: user });
         }
-        if (!found) {
-            connections.push({ ws: ws, user: user });
+        else{
+            console.log("User not found");
         }
     }
 }
